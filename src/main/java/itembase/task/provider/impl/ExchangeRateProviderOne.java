@@ -2,23 +2,23 @@ package itembase.task.provider.impl;
 
 import itembase.task.provider.CurrencyRateData;
 import itembase.task.provider.CurrencyRateProvider;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Function;
 
 /**
  * https://api.exchangerate-api.com/v4/latest/EUR
  */
+@Slf4j
 @RequiredArgsConstructor
 @Component
 class ExchangeRateProviderOne implements CurrencyRateProvider {
@@ -27,13 +27,16 @@ class ExchangeRateProviderOne implements CurrencyRateProvider {
 
 	@Override
 	public Mono<CurrencyRateData> getRates(String currency) {
+//		log.info("ERROR client 1");
+//		return Mono.error(new RuntimeException("111111111111"));
+		log.info("WEB client 1");
 		return webClient
 			.get()
 			.uri("https://api.exchangerate-api.com/v4/latest/{currency}", currency)
 			.retrieve()
-			.bodyToMono(Response.class)
+			.bodyToMono(ResponseProviderOne.class)
 			.log()
-			.map(Adapter::new);
+			.map(ResponseProviderOneAdapter::new);
 	}
 
 //	base: "EUR",
@@ -46,18 +49,18 @@ class ExchangeRateProviderOne implements CurrencyRateProvider {
 
 	@Data
 	@NoArgsConstructor
-	public static class Response {
+	static class ResponseProviderOne {
 		String base;
 		LocalDate date;
 		long time_last_updated;
 		Map<String, Double> rates = new HashMap<>();
 	}
 
-	public static class Adapter extends CurrencyRateData {
+	static class ResponseProviderOneAdapter extends CurrencyRateData {
 
-		private final Response response;
+		private final ResponseProviderOne response;
 
-		public Adapter(Response response) {
+		ResponseProviderOneAdapter(ResponseProviderOne response) {
 			this.response = response;
 		}
 
@@ -73,12 +76,12 @@ class ExchangeRateProviderOne implements CurrencyRateProvider {
 
 		@Override
 		public LocalDate getDate() {
-			return response.getDate();
+			return LocalDate.from(response.getDate());
 		}
 
 		@Override
 		public Map<String, Double> getRates() {
-			return response.getRates();
+			return Collections.unmodifiableMap(response.getRates());
 		}
 	}
 }

@@ -10,10 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
-import java.time.Duration;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalUnit;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,14 +27,16 @@ class ExchangeRateProviderTwo implements CurrencyRateProvider {
 
 	@Override
 	public Mono<CurrencyRateData> getRates(String currency) {
-		return Mono.error(new RuntimeException("LA LA"));
-//		return webClient
-//			.get()
-//			.uri("https://api.exchangeratesapi.io/latest?base={currency}", currency)
-//			.retrieve()
-//			.bodyToMono(Response.class)
-//			.log()
-//			.map(Adapter::new);
+//		log.info("ERROR client 2");
+//		return Mono.error(new RuntimeException("2222222"));
+		log.info("GET RATES client 2");
+		return webClient
+			.get()
+			.uri("https://api.exchangeratesapi.io/latest?base={currency}", currency)
+			.retrieve()
+			.bodyToMono(Response.class)
+			.log()
+			.map(Adapter::new);
 	}
 
 	//	rates: {

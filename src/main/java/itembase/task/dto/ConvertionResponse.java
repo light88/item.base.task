@@ -1,5 +1,6 @@
 package itembase.task.dto;
 
+import itembase.task.provider.CurrencyRateData;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,12 +13,16 @@ import javax.validation.constraints.Size;
 @AllArgsConstructor
 @Data
 public class ConvertionResponse {
-	@Size(min = 3, max = 3)
+
+	public ConvertionResponse(ConvertionRequest cr, CurrencyRateData currencyRateData) {
+		this.from = cr.getFrom();
+		this.to = cr.getTo();
+		this.amount = cr.getAmount();
+		this.converted = currencyRateData.getRates().get(cr.getTo()) * cr.getAmount();
+	}
+
 	private String from;
-	@Size(min = 3, max = 3)
 	private String to;
-	@Positive
 	private Double amount;
-	@Positive
 	private Double converted;
 }
