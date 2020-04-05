@@ -1,6 +1,6 @@
 package itembase.task.provider.impl;
 
-import itembase.task.provider.CurrencyRateData;
+import itembase.task.model.CurrencyRateData;
 import itembase.task.provider.CurrencyRateProvider;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,6 +16,8 @@ import java.util.Map;
 
 /**
  * https://api.exchangeratesapi.io/latest?base=EUR
+ * <p>
+ * response ex.
  */
 
 @Slf4j

@@ -1,6 +1,6 @@
 package itembase.task.provider.impl;
 
-import itembase.task.provider.CurrencyRateData;
+import itembase.task.model.CurrencyRateData;
 import itembase.task.provider.CurrencyRateProvider;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,6 +17,17 @@ import java.util.Map;
 
 /**
  * https://api.exchangerate-api.com/v4/latest/EUR
+ * <p>
+ * response ex.
+ * <p>
+ * base: "EUR",
+ * date: "2020-04-02",
+ * time_last_updated: 1585785849,
+ * rates: {
+ * EUR: 1,
+ * AED: 4.027712,
+ * ...
+ * }
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -38,14 +49,6 @@ class ExchangeRateProviderOne implements CurrencyRateProvider {
 			.log()
 			.map(ResponseProviderOneAdapter::new);
 	}
-
-//	base: "EUR",
-//	date: "2020-04-02",
-//	time_last_updated: 1585785849,
-//	rates: {
-//		EUR: 1,
-//		AED: 4.027712,
-//	}
 
 	@Data
 	@NoArgsConstructor

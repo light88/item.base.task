@@ -1,4 +1,4 @@
-package itembase.task.provider;
+package itembase.task.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

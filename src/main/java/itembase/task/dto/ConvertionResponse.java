@@ -1,15 +1,11 @@
 package itembase.task.dto;
 
-import itembase.task.provider.CurrencyRateData;
+import itembase.task.model.CurrencyRateData;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
 
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Positive;
-import javax.validation.constraints.Size;
-
+@NoArgsConstructor
 @AllArgsConstructor
 @Data
 public class ConvertionResponse {
