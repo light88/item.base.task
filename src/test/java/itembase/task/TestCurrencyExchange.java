@@ -1,47 +1,47 @@
 package itembase.task;
 
-import itembase.task.attr.CustomErrorAttributes;
+import itembase.task.attr.ExchangeErrorAttributes;
+import itembase.task.dto.ConvertionBadResponse;
 import itembase.task.dto.ConvertionRequest;
 import itembase.task.dto.ConvertionResponse;
 import itembase.task.exceptions.ProvidersNotAvailableException;
+import itembase.task.handlers.ConvertionErrorExceptionHandler;
 import itembase.task.handlers.CurrencyExchangeHandler;
-import itembase.task.handlers.GlobalErrorExceptionHandler;
+import itembase.task.helper.ConvertionRequester;
 import itembase.task.model.CurrencyRateData;
 import itembase.task.provider.CurrencyRateProvider;
-import itembase.task.provider.manager.CurrencyRateProvidersManager;
+import itembase.task.manager.CurrencyRateProvidersManager;
 import itembase.task.router.CurrencyExchangeRouter;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.ApplicationContext;
-import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.web.reactive.server.FluxExchangeResult;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.time.LocalDate;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(SpringExtension.class)
 //@SpringBootTest(classes = {TaskApplication.class})
 @ContextConfiguration(classes = {
-	CustomErrorAttributes.class,
-	GlobalErrorExceptionHandler.class,
+	ExchangeErrorAttributes.class,
+	ConvertionErrorExceptionHandler.class,
 	CurrencyRateProvidersManager.class,
 	CurrencyExchangeRouter.class,
 	CurrencyExchangeHandler.class})
 @WebFluxTest
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class TestCurrencyExchange {
 
 	@Autowired
@@ -53,95 +53,93 @@ public class TestCurrencyExchange {
 	@MockBean
 	CurrencyRateProvidersManager manager;
 
-	private WebTestClient webTestClient;
+	private ConvertionRequester convertionRequester;
 
 	final String eur = "EUR";
 	final String usd = "USD";
 
-	@BeforeEach
+	@BeforeAll
 	public void before() {
-		webTestClient = WebTestClient
+		WebTestClient webTestClient = WebTestClient
 			.bindToApplicationContext(applicationContext)
 			.build();
+		this.convertionRequester = new ConvertionRequester(webTestClient);
 	}
 
 	@Test
-	void checkWebClient() {
-		assertNotNull(webTestClient, "WebTestClient is NULL");
+	public void testReturnErrorWhenNoProvidersLeft() {
+		when(manager.getNextCurrencyRateProvider()).thenReturn(Mono.empty());
+
+		ConvertionRequest convertionRequest = new ConvertionRequest(usd, eur, 1.0);
+		FluxExchangeResult<ConvertionBadResponse> fluxExchangeResult =
+			convertionRequester.postConvertBadRequest(convertionRequest);
+
+		ConvertionBadResponse response =
+			new ConvertionBadResponse(ProvidersNotAvailableException.class.getSimpleName(),
+				ProvidersNotAvailableException.message);
+
+		StepVerifier.create(fluxExchangeResult.getResponseBody())
+			.expectNext(response)
+			.verifyComplete();
 	}
 
 	@Test
-	public void testEmptyProvidersException() {
-		Mockito.when(manager.getNextCurrencyRateProvider()).thenReturn(Mono.empty());
+	public void testExceptionWhenNextProviderCallReturnsException() {
+		when(manager.getNextCurrencyRateProvider()).thenReturn(Mono.error(new IllegalStateException("Oops!")));
 
-		webTestClient
-			.post().uri("/currency/convert")
-			.accept(MediaType.APPLICATION_JSON)
-			.bodyValue(new ConvertionRequest("", "", 1.0))
-			.exchange()
-			.expectStatus().isBadRequest()
-			.expectHeader().contentType(MediaType.APPLICATION_PROBLEM_JSON)
-			.expectBody()
-			.jsonPath("$.exception").isEqualTo(ProvidersNotAvailableException.class.getSimpleName())
-			.jsonPath("$.message").isEqualTo(ProvidersNotAvailableException.message)
-		;
-	}
-//	{
-//	  "exception" -> "ProvidersNotAvailableException",
-//	  "message" -> "No providers available to serve your request"
-//  }
+		ConvertionRequest convertionRequest = new ConvertionRequest(usd, eur, 10D);
 
+		FluxExchangeResult<ConvertionBadResponse> fluxExchangeResult = convertionRequester.postConvertBadRequest(convertionRequest);
 
-	@Test
-	public void testEmptyProviderAndOneProviderException() {
-		CurrencyRateProvider provider = (s) ->
-			Mono.just(new CurrencyRateData("USD", LocalDate.now(), LocalDate.now(), Collections.emptyMap()));
-		Mockito.when(manager.getNextCurrencyRateProvider()).thenReturn(Mono.just(provider));
-		Mockito.when(manager.getNextCurrencyRateProvider()).thenReturn(Mono.empty());
+		ConvertionBadResponse response = new ConvertionBadResponse(null, "Oops!");
 
-		webTestClient
-			.post().uri("/currency/convert")
-			.accept(MediaType.APPLICATION_JSON)
-			.bodyValue(new ConvertionRequest("", "", 1.0))
-			.exchange()
-			.expectStatus().isBadRequest()
-			.expectHeader().contentType(MediaType.APPLICATION_PROBLEM_JSON)
-			.expectBody()
-			.jsonPath("$.exception").isEqualTo(ProvidersNotAvailableException.class.getSimpleName())
-			.jsonPath("$.message").isEqualTo(ProvidersNotAvailableException.message)
-		;
+		StepVerifier.create(fluxExchangeResult.getResponseBody())
+			.expectNext(response)
+			.verifyComplete();
 	}
 
 	@Test
 	public void testProviderResult() {
-		Map<String, Double> rates = new HashMap<>();
-		rates.put(eur, 1.3);
+		CurrencyRateData currencyRateData = new CurrencyRateData(usd, LocalDate.now(), LocalDate.now(), Map.of(eur, 1.3));
+		CurrencyRateProvider provider = (s) -> Mono.just(currencyRateData);
 
-		CurrencyRateProvider provider = (s) ->
-			Mono.just(new CurrencyRateData(usd, LocalDate.now(), LocalDate.now(), rates));
-		Mockito.when(manager.getNextCurrencyRateProvider()).thenReturn(Mono.empty());
-		Mockito.when(manager.getNextCurrencyRateProvider()).thenReturn(Mono.just(provider));
+		when(manager.getNextCurrencyRateProvider())
+			.thenReturn(Mono.just(provider))
+			.thenReturn(Mono.empty());
 
 		ConvertionRequest convertionRequest = new ConvertionRequest(usd, eur, 10D);
 
-		Flux<ConvertionResponse> responseFlux = webTestClient
-			.post().uri("/currency/convert")
-			.accept(MediaType.APPLICATION_JSON)
-			.bodyValue(convertionRequest)
-			.exchange()
-			.expectStatus().isOk()
-			.returnResult(ConvertionResponse.class)
-			.getResponseBody();
+		FluxExchangeResult<ConvertionResponse> fluxExchangeResult = convertionRequester.postConvertOK(convertionRequest);
 
-		ConvertionResponse convertionResponse = responseFlux.blockFirst();
+		ConvertionResponse convertionResponse = new ConvertionResponse(usd, eur, 10D, 13D);
 
+		StepVerifier.create(fluxExchangeResult.getResponseBody())
+			.expectNext(convertionResponse)
+			.verifyComplete();
+	}
 
-		Assertions.assertEquals(13D, convertionResponse.getConverted());
-		Assertions.assertEquals(usd, convertionRequest.getFrom());
-		Assertions.assertEquals(eur, convertionRequest.getTo());
-		Assertions.assertEquals(10D, convertionRequest.getAmount());
+	@Test
+	public void testErrorWhenErrorProviderNextEmptyProvider() {
+		CurrencyRateData currencyRateData = new CurrencyRateData(usd, LocalDate.now(), LocalDate.now(), Map.of(eur, 1.3));
 
-		;
+		CurrencyRateProvider okProvider = (p) -> Mono.just(currencyRateData);
+		CurrencyRateProvider errorProvider = (p) -> Mono.error(new IllegalStateException("Oops!"));
+
+		when(manager.getNextCurrencyRateProvider())
+			.thenReturn(Mono.just(errorProvider))
+			.thenReturn(Mono.empty());
+
+		ConvertionRequest convertionRequest = new ConvertionRequest(usd, eur, 10D);
+
+		FluxExchangeResult<ConvertionBadResponse> fluxExchangeResult = convertionRequester.postConvertBadRequest(convertionRequest);
+
+		ConvertionBadResponse response =
+			new ConvertionBadResponse(ProvidersNotAvailableException.class.getSimpleName(),
+				ProvidersNotAvailableException.message);
+
+		StepVerifier.create(fluxExchangeResult.getResponseBody())
+			.expectNext(response)
+			.verifyComplete();
 	}
 
 }

@@ -1,7 +1,7 @@
-package itembase.task.provider.manager.impl;
+package itembase.task.manager.impl;
 
 import itembase.task.provider.CurrencyRateProvider;
-import itembase.task.provider.manager.CurrencyRateProvidersManager;
+import itembase.task.manager.CurrencyRateProvidersManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.synchronoss.cloud.nio.stream.storage.Disposable;
@@ -22,14 +22,14 @@ public class CurrencyRateProviderManagerImpl implements CurrencyRateProvidersMan
 	@Override
 	public Mono<CurrencyRateProvider> getNextCurrencyRateProvider() {
 		CurrencyRateProvider currencyRateProvider = queue.poll();
-		log.trace("Return next currency rate provider {}", currencyRateProvider);
+		log.info("Return next currency rate provider {}", currencyRateProvider);
 		return Mono.justOrEmpty(currencyRateProvider);
 	}
 
 	protected List<CurrencyRateProvider> getRandomProviders(List<CurrencyRateProvider> rateProviders) {
 		ArrayList<CurrencyRateProvider> currencyRateProviders = new ArrayList<>(rateProviders);
 		Collections.shuffle(currencyRateProviders);
-		return currencyRateProviders;
+		return rateProviders;
 	}
 
 	@Override

@@ -18,6 +18,12 @@ import java.util.Map;
  * https://api.exchangeratesapi.io/latest?base=EUR
  * <p>
  * response ex.
+ * 	//	rates: {
+ * //		CAD: 1.5451,
+ * //			HKD: 8.4545,
+ * //			ISK: 155.3,
+ * //	base: "EUR",
+ * //	date: "2020-04-02"
  */
 
 @Slf4j
@@ -25,28 +31,20 @@ import java.util.Map;
 @Component
 class ExchangeRateProviderTwo implements CurrencyRateProvider {
 
+	public static final String BASE_URL = "https://api.exchangeratesapi.io/latest?base={currency}";
 	private final WebClient webClient;
 
 	@Override
 	public Mono<CurrencyRateData> getRates(String currency) {
-//		log.info("ERROR client 2");
-//		return Mono.error(new RuntimeException("2222222"));
-		log.info("GET RATES client 2");
+		log.info(getClass().getSimpleName());
 		return webClient
 			.get()
-			.uri("https://api.exchangeratesapi.io/latest?base={currency}", currency)
+			.uri(BASE_URL, currency)
 			.retrieve()
 			.bodyToMono(Response.class)
 			.log()
 			.map(Adapter::new);
 	}
-
-	//	rates: {
-//		CAD: 1.5451,
-//			HKD: 8.4545,
-//			ISK: 155.3,
-//	base: "EUR",
-//	date: "2020-04-02"
 
 	@NoArgsConstructor
 	@Data

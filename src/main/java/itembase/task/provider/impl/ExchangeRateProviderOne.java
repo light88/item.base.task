@@ -34,16 +34,15 @@ import java.util.Map;
 @Component
 class ExchangeRateProviderOne implements CurrencyRateProvider {
 
+	public static final String BASE_URL = "https://api.exchangerate-api.com/v4/latest/{currency}";
 	private final WebClient webClient;
 
 	@Override
 	public Mono<CurrencyRateData> getRates(String currency) {
-//		log.info("ERROR client 1");
-//		return Mono.error(new RuntimeException("111111111111"));
-		log.info("WEB client 1");
+		log.info(getClass().getSimpleName());
 		return webClient
 			.get()
-			.uri("https://api.exchangerate-api.com/v4/latest/{currency}", currency)
+			.uri(BASE_URL, currency)
 			.retrieve()
 			.bodyToMono(ResponseProviderOne.class)
 			.log()

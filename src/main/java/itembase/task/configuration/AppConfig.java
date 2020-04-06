@@ -1,8 +1,8 @@
 package itembase.task.configuration;
 
 import itembase.task.provider.CurrencyRateProvider;
-import itembase.task.provider.manager.CurrencyRateProvidersManager;
-import itembase.task.provider.manager.impl.CurrencyRateProviderManagerImpl;
+import itembase.task.manager.CurrencyRateProvidersManager;
+import itembase.task.manager.impl.CurrencyRateProviderManagerImpl;
 import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

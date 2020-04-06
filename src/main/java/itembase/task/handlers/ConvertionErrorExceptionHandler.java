@@ -1,6 +1,6 @@
 package itembase.task.handlers;
 
-import itembase.task.attr.CustomErrorAttributes;
+import itembase.task.attr.ExchangeErrorAttributes;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.web.ResourceProperties;
 import org.springframework.boot.autoconfigure.web.reactive.error.AbstractErrorWebExceptionHandler;
@@ -19,27 +19,29 @@ import java.util.Map;
 @Slf4j
 @Order(- 2)
 @Component
-public class GlobalErrorExceptionHandler extends AbstractErrorWebExceptionHandler {
+public class ConvertionErrorExceptionHandler extends AbstractErrorWebExceptionHandler {
 
-	public GlobalErrorExceptionHandler(ServerCodecConfigurer serverCodecConfigurer,
-	                                   CustomErrorAttributes errorAttributes,
-	                                   ApplicationContext applicationContext) {
+	public ConvertionErrorExceptionHandler(ServerCodecConfigurer serverCodecConfigurer,
+	                                       ExchangeErrorAttributes errorAttributes,
+	                                       ApplicationContext applicationContext) {
 		super(errorAttributes, new ResourceProperties(), applicationContext);
 		super.setMessageWriters(serverCodecConfigurer.getWriters());
 		super.setMessageReaders(serverCodecConfigurer.getReaders());
 	}
 
-
 	@Override
 	protected RouterFunction<ServerResponse> getRoutingFunction(ErrorAttributes errorAttributes) {
-		return RouterFunctions.route(RequestPredicates.all(), this::handle);
+		return RouterFunctions.route(RequestPredicates.POST("/currency/convert"), this::handle);
 	}
 
 	public Mono<ServerResponse> handle(ServerRequest serverRequest) {
 		Map<String, Object> errorAttributes = super.getErrorAttributes(serverRequest, false);
-		return ServerResponse
-			.badRequest()
+		Object errorResponse = errorAttributes.get("errorResponse");
+		if (errorResponse == null) {
+			errorResponse = errorAttributes;
+		}
+		return ServerResponse.badRequest()
 			.contentType(MediaType.APPLICATION_PROBLEM_JSON)
-			.body(BodyInserters.fromValue(errorAttributes));
+			.body(BodyInserters.fromValue(errorResponse));
 	}
 }

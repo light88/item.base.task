@@ -1,4 +1,4 @@
-package itembase.task.provider.manager;
+package itembase.task.manager;
 
 import itembase.task.provider.CurrencyRateProvider;
 import reactor.core.publisher.Mono;
